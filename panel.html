@@ -25,8 +25,8 @@
   .field input:focus { outline: none; border-color: #ff6b00; }
   .field input::placeholder { color: #445577; }
   hr.sep { border: none; border-top: 1px solid #1e3060; margin: 12px 0; }
-  .btn-display { width: 100%; margin-top: 16px; background: #132040; color: #aabbcc; border: 1px solid #1e3060; border-radius: 8px; padding: 10px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
-  .btn-display:hover { background: #1e3060; color: #fff; }
+  .btn-download { width: 100%; margin-top: 16px; background: transparent; color: #ff6b00; border: 1px solid #ff6b00; border-radius: 8px; padding: 10px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+  .btn-download:hover { background: #ff6b00; color: #fff; }
   .status { text-align: center; font-size: 0.72rem; color: #556688; margin-top: 10px; }
   .status.connected { color: #09bdd2; }
 </style>
@@ -101,7 +101,7 @@
   </div>
 </div>
 
-<button class="btn-display" onclick="openDisplay()">Abrir pantalla completa</button>
+<button class="btn-download" onclick="dlCurrent()">Descargar JPG</button>
 <p class="status" id="status">Escribe un resultado para sincronizar</p>
 </div>
 
@@ -138,10 +138,26 @@ function publish() {
   document.getElementById('status').className = 'status connected';
 }
 
-function openDisplay() {
+const DL_NAMES = {
+  'futbol-masc': 'Fixture_Futbol_Masculino_Fecha3.jpg',
+  'voley':       'Fixture_Voley_Mixto_Fecha3.jpg',
+  'padel':       'Fixture_Padel_Fecha3.jpg',
+  'futbol-fem':  'Fixture_Futbol_Femenino_Fecha3.jpg'
+};
+
+function dlCurrent() {
   publish();
-  window.open('index.html', 'fixture_display',
-    'width=1280,height=720,menubar=no,toolbar=no,location=no,status=no');
+  const sport = getActiveTab();
+  // Buscar el canvas en index.html si está abierto, o descargarlo desde aquí
+  const w = window.open('', 'fixture_display');
+  if (w && w.dlCurrent) {
+    w.currentSport = sport;
+    w.dlCurrent();
+  } else {
+    // Abrir index.html y descargar al cargar
+    localStorage.setItem('fixture_dl_request', sport);
+    window.open('index.html', 'fixture_display');
+  }
 }
 
 // Restaurar valores guardados al cargar

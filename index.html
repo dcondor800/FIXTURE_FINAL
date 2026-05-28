@@ -163,6 +163,14 @@ function renderAll() {
 // Escuchar cambios del panel en tiempo real
 window.addEventListener('storage', e => {
   if (e.key === 'fixture_data') renderAll();
+  if (e.key === 'fixture_dl_request' && e.newValue) {
+    const sport = e.newValue;
+    localStorage.removeItem('fixture_dl_request');
+    renderSport(sport).then(() => {
+      currentSport = sport;
+      dlCurrent();
+    });
+  }
 });
 
 window.addEventListener('load', renderAll);
