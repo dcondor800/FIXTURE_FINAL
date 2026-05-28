@@ -138,6 +138,12 @@ function publish() {
   document.getElementById('status').className = 'status connected';
 }
 
+const IMG_SRC = {
+  'futbol-masc': 'FIXTURE_ACTUALIZADO/Futbol Masculino.jpeg',
+  'voley':       'FIXTURE_ACTUALIZADO/Voley Mixto.jpeg',
+  'padel':       'FIXTURE_ACTUALIZADO/Padel.jpeg',
+  'futbol-fem':  'FIXTURE_ACTUALIZADO/Futbol Femenino.jpeg'
+};
 const DL_NAMES = {
   'futbol-masc': 'Fixture_Futbol_Masculino_Fecha3.jpg',
   'voley':       'Fixture_Voley_Mixto_Fecha3.jpg',
@@ -145,19 +151,83 @@ const DL_NAMES = {
   'futbol-fem':  'Fixture_Futbol_Femenino_Fecha3.jpg'
 };
 
-function dlCurrent() {
+const imgCache = {};
+function loadImg(key) {
+  return new Promise(resolve => {
+    if (imgCache[key]) { resolve(imgCache[key]); return; }
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => { imgCache[key] = img; resolve(img); };
+    img.src = IMG_SRC[key];
+  });
+}
+
+function pillPath(ctx, cx, cy, w, h) {
+  const r = h/2, x = cx-w/2, y = cy-h/2;
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+}
+
+function drawPill(ctx, text, cx, cy, sx, sy, customW, customColor, customH) {
+  const pw=(customW||130)*sx, ph=(customH||32)*sy, fs=22*Math.min(sx,sy);
+  const color=customColor||'#ef601b', rx=cx*sx, ry=cy*sy;
+  ctx.save();
+  ctx.fillStyle='#000A14'; pillPath(ctx,rx,ry,pw,ph); ctx.fill();
+  ctx.strokeStyle=color; ctx.lineWidth=1.8*Math.min(sx,sy);
+  pillPath(ctx,rx,ry,pw,ph); ctx.stroke();
+  ctx.fillStyle=color;
+  ctx.font='600 '+fs+'px "Segoe UI",Arial,sans-serif';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(text,rx,ry+1); ctx.restore();
+}
+
+function g(id, fallback) {
+  const el = document.getElementById(id);
+  return (el && el.value.trim()) ? el.value.trim() : fallback;
+}
+
+async function dlCurrent() {
   publish();
   const sport = getActiveTab();
-  // Buscar el canvas en index.html si está abierto, o descargarlo desde aquí
-  const w = window.open('', 'fixture_display');
-  if (w && w.dlCurrent) {
-    w.currentSport = sport;
-    w.dlCurrent();
-  } else {
-    // Abrir index.html y descargar al cargar
-    localStorage.setItem('fixture_dl_request', sport);
-    window.open('index.html', 'fixture_display');
+  const canvas = document.createElement('canvas');
+  const img = await loadImg(sport);
+  canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0);
+  const sx = canvas.width/2133, sy = canvas.height/1600;
+
+  if (sport === 'futbol-masc') {
+    drawPill(ctx, g('fm-ga','G.A'),   534, 1131, sx, sy, 172, undefined, 32);
+    drawPill(ctx, g('fm-gb','G.B'),   759, 1131, sx, sy, 172, undefined, 32);
+    drawPill(ctx, g('fm-gc','G.C'),  1372, 1131, sx, sy, 172, undefined, 32);
+    drawPill(ctx, g('fm-mp','M.P'),  1598, 1131, sx, sy, 172, undefined, 32);
+    drawPill(ctx, g('fm-g1','G1'),    953, 1174, sx, sy, 170, undefined, 32);
+    drawPill(ctx, g('fm-g2','G2'),   1178, 1174, sx, sy, 170, undefined, 32);
+  } else if (sport === 'voley') {
+    drawPill(ctx, g('vl-1a','1ºA'),  748, 1075, sx, sy, 172);
+    drawPill(ctx, g('vl-2b','2ºB'),  970, 1075, sx, sy, 172, '#09bdd2');
+    drawPill(ctx, g('vl-1b','1ºB'), 1161, 1075, sx, sy, 172, '#09bdd2');
+    drawPill(ctx, g('vl-2a','2ºA'), 1384, 1075, sx, sy, 172);
+    drawPill(ctx, g('vl-f1','F1'),   750, 1118, sx, sy, 172);
+    drawPill(ctx, g('vl-f2','F2'),   970, 1118, sx, sy, 172);
+  } else if (sport === 'padel') {
+    drawPill(ctx, g('pd-1a','1ºA'),  741, 1091, sx, sy, 175);
+    drawPill(ctx, g('pd-2b','2ºB'),  968, 1091, sx, sy, 175, '#09bdd2');
+    drawPill(ctx, g('pd-1b','1ºB'), 1164, 1091, sx, sy, 175, '#09bdd2');
+    drawPill(ctx, g('pd-2a','2ºA'), 1393, 1091, sx, sy, 175);
+    drawPill(ctx, g('pd-f1','F1'),   741, 1135, sx, sy, 175);
+    drawPill(ctx, g('pd-f2','F2'),   968, 1135, sx, sy, 175);
+  } else if (sport === 'futbol-fem') {
+    drawPill(ctx, g('ff-1','1°'),   917, 1118, sx, sy, 205, '#09bdd2', 36);
+    drawPill(ctx, g('ff-2','2°'), 1209, 1118, sx, sy, 205, '#09bdd2', 36);
   }
+
+  const a = document.createElement('a');
+  a.download = DL_NAMES[sport];
+  a.href = canvas.toDataURL('image/jpeg', 0.95);
+  a.click();
 }
 
 // Restaurar valores guardados al cargar
